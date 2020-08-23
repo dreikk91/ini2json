@@ -236,10 +236,18 @@ def update_guarded_object(object_name, object_address):
     return guarded_object
 
 
-def update_guarded_object_rooms(guarded_object, group_name):
+def update_guarded_object_rooms(guarded_object, group_name, zone_group):
     guarded_object_rooms = copy.deepcopy(guarded_object["rooms"][0])
     guarded_object_rooms["name"] = copy.deepcopy(group_name)
     guarded_object_rooms["description"] = copy.deepcopy(group_name)
+    rooms_count = 2
+    for zone in config_zones:
+        if "z" + str(rooms_count) + ".group_" in zone:
+            if int(config_zones[zone]) >= 2:
+                guarded_object['rooms'].insert(rooms_count, copy.deepcopy(guarded_object_rooms))
+                guarded_object_rooms["name"] = copy.deepcopy(group_name)
+                guarded_object_rooms["description"] = copy.deepcopy(group_name)
+                rooms_count += 1
     return guarded_object_rooms
 
 
@@ -298,8 +306,8 @@ def update_guarded_device_lines(config_zones):
             )
             if (
                 zone_message == "Тривжна кнопка радіобрелок"
-                or zone_message == "тривжна кнопка радіобрелок"
-                or zone_message == "Тривжна кнопка"
+                or zone_message == "тривожна кнопка радіобрелок"
+                or zone_message == "Тривожна кнопка"
                 or zone_message == "радіобрелок"
                 or zone_message == "Радіобрелок"
                 or zone_message == "Тривожна кнопка радіобрелок"
@@ -312,7 +320,6 @@ def update_guarded_device_lines(config_zones):
         else:
             continue
     print(len(guarded_device_lines))
-    count = 1
     return guarded_device_lines
 
 
@@ -326,7 +333,7 @@ def update_guarded_object_rooms_lines(guarded_device_lines):
                 zone_group = config["ZONES"][zone]
                 # try:
                 # print(config['ZONES'][zone])
-                guarded_object_lines.update(
+                guarded_object['rooms'][int(zone_group) - 1]['lines'].update(
                     {
                         str(count): {
                             "adapter_type": "SYS",
@@ -367,7 +374,7 @@ for file in glob.glob("inifiles\\*.ini"):
     ) = get_data_from_ini(file)
 
     guarded_object = update_guarded_object(object_name, object_address)
-    guarded_object_rooms = update_guarded_object_rooms(guarded_object, group_name)
+    guarded_object_rooms = update_guarded_object_rooms(guarded_object, group_name, config_zones)
     guarded_device = update_guarded_device(
         object_name, central_phone_number, type_central
     )
