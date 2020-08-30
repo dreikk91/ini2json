@@ -42,6 +42,7 @@ else:
         user_agent="Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.163 Safari/537.36"
     )
 
+
 def find_lat_long(address):
     location = None
     cutted_address = (
@@ -154,6 +155,9 @@ json_dict_origin = {
     ],
 }
 
+def format_phone_number(number):
+    new_number = '%s (%s) %s %s %s' %  (number[0:3], number[3:6], number[6:9], number[9:11], number[11:13])
+    return new_number
 
 def get_data_from_ini(filename):
     config.clear()
@@ -236,18 +240,10 @@ def update_guarded_object(object_name, object_address):
     return guarded_object
 
 
-def update_guarded_object_rooms(guarded_object, group_name, zone_group):
+def update_guarded_object_rooms(guarded_object, group_name):
     guarded_object_rooms = copy.deepcopy(guarded_object["rooms"][0])
     guarded_object_rooms["name"] = copy.deepcopy(group_name)
     guarded_object_rooms["description"] = copy.deepcopy(group_name)
-    rooms_count = 2
-    for zone in config_zones:
-        if "z" + str(rooms_count) + ".group_" in zone:
-            if int(config_zones[zone]) >= 2:
-                guarded_object['rooms'].insert(rooms_count, copy.deepcopy(guarded_object_rooms))
-                guarded_object_rooms["name"] = copy.deepcopy(group_name)
-                guarded_object_rooms["description"] = copy.deepcopy(group_name)
-                rooms_count += 1
     return guarded_object_rooms
 
 
@@ -259,7 +255,7 @@ def update_guarded_device(object_name, central_phone_number, type_central):
     guarded_device["number"] = int(re.sub(r"[^0-9+]+", r"", panel_id))
     guarded_device["name"] = object_name
     guarded_device["type"] = "TYPE_DEVICE_Ajax"
-    guarded_device["timeout"] = 800
+    guarded_device["timeout"] = 1800
     try:
         if str(central_phone_number)[0] == "3":
             guarded_device["sim1"] = "+" + str(central_phone_number)
@@ -267,6 +263,13 @@ def update_guarded_device(object_name, central_phone_number, type_central):
         else:
             guarded_device["sim1"] = "+38" + str(central_phone_number)
             guarded_device["sim2"] = "+38" + str(central_phone_number)
+    except IndexError:
+        guarded_device["sim1"] = ""
+        guarded_device["sim2"] = ""
+
+    try:
+        guarded_device["sim1"] = format_phone_number(guarded_device["sim1"])
+        guarded_device["sim2"] = format_phone_number(guarded_device["sim2"])
     except IndexError:
         guarded_device["sim1"] = ""
         guarded_device["sim2"] = ""
@@ -306,11 +309,18 @@ def update_guarded_device_lines(config_zones):
             )
             if (
                 zone_message == "Тривжна кнопка радіобрелок"
-                or zone_message == "тривожна кнопка радіобрелок"
-                or zone_message == "Тривожна кнопка"
+                or zone_message == "тривжна кнопка радіобрелок"
+                or zone_message == "Тривжна кнопка"
                 or zone_message == "радіобрелок"
                 or zone_message == "Радіобрелок"
                 or zone_message == "Тривожна кнопка радіобрелок"
+                or zone_message == "Тривожна кнопка радіобрелок"
+                or zone_message == "Тривожна кнопка радіобрелок 1"
+                or zone_message == "Тривожна кнопка радіобрелок 2"
+                or zone_message == "Тривожна кнопка радіобрелок 3"
+                or zone_message == "Тривожна кнопка радіобрелок 4"
+                or zone_message == "Тривожна кнопка радіобрелок коридор"
+                    or zone_message == "тРИВОЖНА КНОПКА РАДІОБРЕЛОК"
             ):
                 guarded_device_lines[str(zone_value)]["line_type"] = "ALM_BTN"
             count += 1
@@ -320,6 +330,7 @@ def update_guarded_device_lines(config_zones):
         else:
             continue
     print(len(guarded_device_lines))
+    count = 1
     return guarded_device_lines
 
 
@@ -333,7 +344,7 @@ def update_guarded_object_rooms_lines(guarded_device_lines):
                 zone_group = config["ZONES"][zone]
                 # try:
                 # print(config['ZONES'][zone])
-                guarded_object['rooms'][int(zone_group) - 1]['lines'].update(
+                guarded_object_lines.update(
                     {
                         str(count): {
                             "adapter_type": "SYS",
@@ -374,7 +385,7 @@ for file in glob.glob("inifiles\\*.ini"):
     ) = get_data_from_ini(file)
 
     guarded_object = update_guarded_object(object_name, object_address)
-    guarded_object_rooms = update_guarded_object_rooms(guarded_object, group_name, config_zones)
+    guarded_object_rooms = update_guarded_object_rooms(guarded_object, group_name)
     guarded_device = update_guarded_device(
         object_name, central_phone_number, type_central
     )
@@ -396,7 +407,7 @@ for file in glob.glob("inifiles\\*.ini"):
             copy.deepcopy(guarded_object_rooms)
         )
         json_dict["data"][0]["guardedObject"]["rooms"][0]["lines"].update(
-            copy.deepcopy(guarded_device_lines)
+            copy.deepcopy(guarded_object_lines)
         )
         json_dict["data"][0]["device"].update(copy.deepcopy(guarded_device))
         json_dict["data"][0]["device"]["lines"].update(
@@ -412,7 +423,7 @@ for file in glob.glob("inifiles\\*.ini"):
             copy.deepcopy(guarded_object_rooms)
         )
         json_dict["data"][device_count]["guardedObject"]["rooms"][0]["lines"].update(
-            copy.deepcopy(guarded_device_lines)
+            copy.deepcopy(guarded_object_lines)
         )
         guarded_device["lines"].update(copy.deepcopy(guarded_device_lines))
         json_dict["data"][device_count]["device"].update(copy.deepcopy(guarded_device))
