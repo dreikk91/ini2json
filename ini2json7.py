@@ -212,6 +212,9 @@ def get_data_from_ini(filename):
         panel_id,
     )
 
+with open ('alarm_batton.txt', 'r') as alm_btn:
+    alm_btn = alm_btn.read()
+    print(alm_btn)
 
 def update_guarded_object(object_name, object_address):
     today = datetime.now().strftime("%Y-%m-%d")
@@ -307,21 +310,22 @@ def update_guarded_device_lines(config_zones):
                     }
                 }
             )
-            if (
-                zone_message == "Тривжна кнопка радіобрелок"
-                or zone_message == "тривжна кнопка радіобрелок"
-                or zone_message == "Тривжна кнопка"
-                or zone_message == "радіобрелок"
-                or zone_message == "Радіобрелок"
-                or zone_message == "Тривожна кнопка радіобрелок"
-                or zone_message == "Тривожна кнопка радіобрелок"
-                or zone_message == "Тривожна кнопка радіобрелок 1"
-                or zone_message == "Тривожна кнопка радіобрелок 2"
-                or zone_message == "Тривожна кнопка радіобрелок 3"
-                or zone_message == "Тривожна кнопка радіобрелок 4"
-                or zone_message == "Тривожна кнопка радіобрелок коридор"
-                    or zone_message == "тРИВОЖНА КНОПКА РАДІОБРЕЛОК"
-            ):
+            # if (
+            #     zone_message == "Тривжна кнопка радіобрелок"
+            #     or zone_message == "тривжна кнопка радіобрелок"
+            #     or zone_message == "Тривжна кнопка"
+            #     or zone_message == "радіобрелок"
+            #     or zone_message == "Радіобрелок"
+            #     or zone_message == "Тривожна кнопка радіобрелок"
+            #     or zone_message == "Тривожна кнопка радіобрелок"
+            #     or zone_message == "Тривожна кнопка радіобрелок 1"
+            #     or zone_message == "Тривожна кнопка радіобрелок 2"
+            #     or zone_message == "Тривожна кнопка радіобрелок 3"
+            #     or zone_message == "Тривожна кнопка радіобрелок 4"
+            #     or zone_message == "Тривожна кнопка радіобрелок коридор"
+            #         or zone_message == "тРИВОЖНА КНОПКА РАДІОБРЕЛОК"
+            # ):
+            if zone_message in alm_btn:
                 guarded_device_lines[str(zone_value)]["line_type"] = "ALM_BTN"
             count += 1
             if zone_value == 1 and zone_group == 2:
