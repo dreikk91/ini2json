@@ -175,7 +175,6 @@ def get_data_from_ini(filename):
         config.read(file, encoding="utf8")
     except:
         config.read(file, encoding="cp1251")
-    # print(config.sections())
     panel_id = config["PANEL"]["Panel_id"]  # Pult number
     type_central = config["PANEL"]["TypeCentral"]
     try:
@@ -195,7 +194,6 @@ def get_data_from_ini(filename):
     object_create_date = config["COMPANY"]["C1.CreateDate"]  # Create object date
     engineer = config["COMPANY"]["C1.Engineer"].split()  # Engineer name
     config_zones = config["ZONES"]
-    # print(type(config_zones))
     try:
         group_name = config["GROUPS"]["G1.Message"]  # Group name
     except:
@@ -213,7 +211,6 @@ def get_data_from_ini(filename):
         object_create_date,
         object_address,
         object_name,
-        object_name,
         create_date,
         central_phone_number,
         type_central,
@@ -223,13 +220,11 @@ def get_data_from_ini(filename):
 
 with open("alarm_batton.txt", "r") as alm_btn:
     alm_btn = alm_btn.read()
-    print(alm_btn)
-
 
 def update_guarded_object(object_name, object_address):
     today = datetime.now().strftime("%Y-%m-%d")
     json_dict["export_date"] = today
-    guarded_object = json_dict["data"][0]["guardedObject"].copy()
+    guarded_object = copy.deepcopy(json_dict["data"][0]["guardedObject"])
     guarded_object["rooms"][0]["lines"].clear()
     guarded_object["name"] = object_name
     guarded_object["address"] = object_address
@@ -252,6 +247,7 @@ def update_guarded_object(object_name, object_address):
         guarded_object["description"] = object_name
     return guarded_object
 
+
 def find_max_group(config_zones):
     count = 1
     max_group = 1
@@ -263,22 +259,46 @@ def find_max_group(config_zones):
             count += 1
     return max_group
 
-def update_guarded_object_rooms(guarded_object, group_name, max_group):
-    guarded_object_rooms = copy.deepcopy(guarded_object["rooms"][0])
-    guarded_object_rooms["name"] = copy.deepcopy(group_name)
-    guarded_object_rooms["description"] = copy.deepcopy(group_name)
+
+def find_group_name(max_group):
+    dict_group_name = {}
+    count = 1
+
+    for cnt in range(max_group):
+        new_dict = {count: str(count) + ") " + config["GROUPS"]["G%s.Message" % count]}
+        dict_group_name.update(new_dict)
+        try:
+            print(dict_group_name[count])
+        except IndexError as err:
+            print(err)
+        count += 1
+    return dict_group_name
+
+
+def update_guarded_object_rooms(guarded_object, max_group, find_group_name):
+    guarded_object_rooms = copy.deepcopy(guarded_object["rooms"])
+    guarded_object_rooms.clear
+    guarded_object_rooms = copy.deepcopy(guarded_object["rooms"])
     for group_number in range(max_group):
-        guarded_object["rooms"].insert(group_number, copy.deepcopy(guarded_object["rooms"][0]))
-        guarded_object_rooms["name"] = copy.deepcopy(group_name)
-        guarded_object_rooms["description"] = copy.deepcopy(group_name)
+        if group_number == 0:
+            guarded_object_rooms[0]["name"] = copy.deepcopy(
+                find_group_name[group_number + 1]
+            )
+            guarded_object_rooms[0]["description"] = copy.deepcopy(
+                find_group_name[group_number + 1]
+            )
+        else:
+            guarded_object_rooms.insert(
+                group_number, copy.deepcopy(guarded_object["rooms"][0])
+            )
+            guarded_object_rooms[group_number]["name"] = copy.deepcopy(
+                find_group_name[group_number + 1]
+            )
+            guarded_object_rooms[group_number]["description"] = copy.deepcopy(
+                find_group_name[group_number + 1]
+            )
     return guarded_object_rooms
 
-def change_rooms_name(config_zones):
-    for room in config_zones:
-        pass
-
-def add_guarded_object_rooms(max_group, guarded_object_rooms):
-    pass
 
 def update_guarded_device(object_name, central_phone_number, type_central):
     guarded_device = json_dict["data"][0]["device"].copy()
@@ -321,13 +341,10 @@ def update_guarded_device_lines(config_zones):
     for zone in config_zones:
         if "z" + str(count) + ".zone" in zone:
             zone_value = config_zones[zone]
-            # print(zone_value)
         if "z" + str(count) + ".group_" in zone:
             zone_group = config_zones[zone]
-            # print(zone_group)
         if "z" + str(count) + ".message" in zone:
             zone_message = config_zones[zone]
-            # print(zone_message)
 
             guarded_device_lines.update(
                 {
@@ -340,63 +357,37 @@ def update_guarded_device_lines(config_zones):
                     }
                 }
             )
-            # if (
-            #     zone_message == "Тривжна кнопка радіобрелок"
-            #     or zone_message == "тривжна кнопка радіобрелок"
-            #     or zone_message == "Тривжна кнопка"
-            #     or zone_message == "радіобрелок"
-            #     or zone_message == "Радіобрелок"
-            #     or zone_message == "Тривожна кнопка радіобрелок"
-            #     or zone_message == "Тривожна кнопка радіобрелок"
-            #     or zone_message == "Тривожна кнопка радіобрелок 1"
-            #     or zone_message == "Тривожна кнопка радіобрелок 2"
-            #     or zone_message == "Тривожна кнопка радіобрелок 3"
-            #     or zone_message == "Тривожна кнопка радіобрелок 4"
-            #     or zone_message == "Тривожна кнопка радіобрелок коридор"
-            #         or zone_message == "тРИВОЖНА КНОПКА РАДІОБРЕЛОК"
-            # ):
             if zone_message in alm_btn:
                 guarded_device_lines[str(zone_value)]["line_type"] = "ALM_BTN"
             count += 1
-            if zone_value == 1 and zone_group == 2:
-                guarded_device_lines[str(zone_value)]["group_number"] = 1
-
         else:
             continue
-    print(len(guarded_device_lines))
     count = 1
     return guarded_device_lines
 
-
-def update_guarded_object_rooms_lines(guarded_device_lines):
-    guarded_object_lines = {}
-    guarded_object_lines.clear()
-    count = 1
-    for zone in config_zones:
-        if count <= len(guarded_device_lines):
-            if "z" + str(count) + ".group_" in zone:
-                zone_group = config["ZONES"][zone]
-            if "G" + str(count+1) + "Message" in zone:
-                room_name = "G" + str(count+1) + "Message"
-                guarded_object['rooms'][int(zone_group) - 1]["name"] = copy.deepcopy(room_name)
-                guarded_object['rooms'][int(zone_group) - 1]["description"] = copy.deepcopy(room_name)
-                # try:
-                # print(config['ZONES'][zone])
-                guarded_object['rooms'][int(zone_group) - 1].update(
-                    {
-                        str(count): {
-                            "adapter_type": "SYS",
-                            "group_number": int(zone_group),
-                            "adapter_number": 0,
-                        }
+def update_guarded_object_rooms_lines_v2(guarded_device_lines):
+    for line in guarded_device_lines.items():
+        try:
+            guarded_object_rooms[int(line[1]["group_number"]) - 1]["lines"].update(
+                {
+                    str(line[0]): {
+                        "adapter_type": "SYS",
+                        "group_number": int(line[1]["group_number"]),
+                        "adapter_number": 0,
                     }
-                )
-
-                count += 1
-            else:
-                continue
-        guarded_object_lines = copy.deepcopy(guarded_object['rooms'])
-    return guarded_object_lines
+                }
+            )
+        except KeyError as err:
+            print(line[1]["group_number"], err)
+            guarded_object_rooms[int(line[1]["group_number"])]["lines"].update(
+                {
+                    str(line[0]): {
+                        "adapter_type": "SYS",
+                        "group_number": int(line[1]["group_number"]),
+                        "adapter_number": 0,
+                    }
+                }
+            )
 
 
 try:
@@ -417,7 +408,6 @@ for file in glob.glob("inifiles\\*.ini"):
         object_create_date,
         object_address,
         object_name,
-        object_name,
         create_date,
         central_phone_number,
         type_central,
@@ -425,30 +415,26 @@ for file in glob.glob("inifiles\\*.ini"):
     ) = get_data_from_ini(file)
 
     guarded_object = update_guarded_object(object_name, object_address)
-    guarded_object_rooms = update_guarded_object_rooms(guarded_object, group_name, find_max_group(config_zones))
+    guarded_object_rooms = update_guarded_object_rooms(
+        guarded_object,
+        group_name,
+        find_max_group(config_zones),
+        find_group_name(find_max_group(config_zones)),
+    )
     guarded_device = update_guarded_device(
         object_name, central_phone_number, type_central
     )
     guarded_device_lines = update_guarded_device_lines(config_zones)
-    guarded_object_lines = update_guarded_object_rooms_lines(guarded_device_lines)
-
-    # guarded_object['rooms'][0]['lines'].clear()
-    # guarded_device['lines'].clear()
-    # guarded_device['lines'] = guarded_device_lines.copy()
-
-    # guarded_object['rooms'][0]['lines'].update(guarded_object_lines.copy())
+    guarded_object_lines = update_guarded_object_rooms_lines_v2(guarded_device_lines)
     guarded_object["rooms"][0]["lines"].clear()
     guarded_device["lines"].clear()
+    guarded_object["rooms"].clear()
 
     if device_count == 0:
-        # json_dict['data'].insert(device_count, { 'guardedObject': { }, 'device': { } })
         json_dict["data"][0]["guardedObject"].update(copy.deepcopy(guarded_object))
-        json_dict["data"][0]["guardedObject"]["rooms"][0].update(
-            copy.deepcopy(guarded_object_rooms)
-        )
-        json_dict["data"][0]["guardedObject"]["rooms"][0]["lines"].update(
-            copy.deepcopy(guarded_object_lines)
-        )
+        for lst in copy.deepcopy(guarded_object_rooms):
+            json_dict["data"][0]["guardedObject"]["rooms"].append(lst)
+
         json_dict["data"][0]["device"].update(copy.deepcopy(guarded_device))
         json_dict["data"][0]["device"]["lines"].update(
             copy.deepcopy(guarded_device_lines)
@@ -459,18 +445,17 @@ for file in glob.glob("inifiles\\*.ini"):
         json_dict["data"][device_count]["guardedObject"].update(
             copy.deepcopy(guarded_object)
         )
-        json_dict["data"][device_count]["guardedObject"]["rooms"][0].update(
-            copy.deepcopy(guarded_object_rooms)
-        )
-        json_dict["data"][device_count]["guardedObject"]["rooms"][0]["lines"].update(
-            copy.deepcopy(guarded_object_lines)
-        )
+        for lst in copy.deepcopy(guarded_object_rooms):
+            json_dict["data"][device_count]["guardedObject"]["rooms"].append(
+                copy.deepcopy(lst)
+            )
+
         guarded_device["lines"].update(copy.deepcopy(guarded_device_lines))
         json_dict["data"][device_count]["device"].update(copy.deepcopy(guarded_device))
         json_dict["data"][device_count]["device"]["lines"].update(
             copy.deepcopy(guarded_device_lines)
         )
-        # print(json_dict['data'][device_count]['device']['lines'])
+
     device_count += 1
 
 json_result = (
